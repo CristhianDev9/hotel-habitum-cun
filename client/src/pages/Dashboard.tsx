@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { roomService } from '@/services/api';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -98,15 +99,15 @@ export default function Dashboard() {
     } else if (current === 'Mantenimiento') {
       return ['Disponible', 'Mantenimiento'];
     } else {
-      return ['Ocupada'];
+      return ['Disponible', 'Ocupada', 'Mantenimiento'];
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
       
-      <main className="container py-8">
+      <main className="container py-8 flex-grow">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
@@ -359,6 +360,7 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
       </main>
+      <Footer />
     </div>
   );
 }

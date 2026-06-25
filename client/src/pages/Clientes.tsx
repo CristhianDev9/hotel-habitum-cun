@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { clientService } from '@/services/api';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -260,10 +261,10 @@ export default function Clientes() {
     Object.values(formData).every((v) => v.trim() !== '');
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="container py-8">
+      <main className="container py-8 flex-grow">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
@@ -477,6 +478,7 @@ export default function Clientes() {
           </CardContent>
         </Card>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { roleService } from '@/services/api';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -190,10 +191,10 @@ export default function Roles() {
   const formValid = Object.keys(validateRoleForm(formData)).length === 0 && formData.nombre.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="container py-8">
+      <main className="container py-8 flex-grow">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Roles</h1>
@@ -315,6 +316,7 @@ export default function Roles() {
           </DialogContent>
         </Dialog>
       </main>
+      <Footer />
     </div>
   );
 }

@@ -24,6 +24,7 @@ export default function Navbar() {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoadingRoles, setIsLoadingRoles] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const [registerForm, setRegisterForm] = useState({
     id_role: 1,
     nombre_completo: '',
@@ -102,10 +103,21 @@ export default function Navbar() {
       <div className="container flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/dashboard" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary via-primary to-primary/80 shadow-lg">
-            <span className="text-lg font-bold text-primary-foreground">H</span>
+          <div className="flex h-12 w-36 items-center justify-center rounded-lg bg-white border border-border shadow-sm overflow-hidden p-0.5">
+            {!logoError ? (
+              <img
+                src="/logo.png"
+                alt="Logo"
+                className="h-full w-full object-contain"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <span className="text-lg font-bold text-primary">H</span>
+            )}
           </div>
-          <span className="hidden text-xl font-bold text-foreground sm:inline">HabitumCUN</span>
+          {logoError && (
+            <span className="hidden text-xl font-bold text-foreground sm:inline">HabitumCUN</span>
+          )}
         </Link>
 
         {/* Desktop Navigation */}

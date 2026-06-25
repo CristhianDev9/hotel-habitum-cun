@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { reservationService, consumptionService, paymentService } from '@/services/api';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -155,10 +156,10 @@ export default function Reservas() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="container py-8">
+      <main className="container py-8 flex-grow">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
@@ -366,6 +367,7 @@ export default function Reservas() {
           </CardContent>
         </Card>
       </main>
+      <Footer />
     </div>
   );
 }

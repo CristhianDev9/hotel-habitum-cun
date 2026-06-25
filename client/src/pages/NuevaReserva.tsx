@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { clientService, roomService, reservationService } from '@/services/api';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -292,10 +293,10 @@ export default function NuevaReserva() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="container py-8">
+      <main className="container py-8 flex-grow">
         {/* Header */}
         <div className="mb-8 flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => navigate('/reservas')}>
@@ -663,6 +664,7 @@ export default function NuevaReserva() {
           </div>
         </DialogContent>
       </Dialog>
+      <Footer />
     </div>
   );
 }
