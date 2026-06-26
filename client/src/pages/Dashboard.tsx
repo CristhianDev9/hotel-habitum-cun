@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { roomService } from '@/services/api';
+import { reservationService, roomService } from '@/services/api';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,8 +18,23 @@ interface Room {
   estado: 'Disponible' | 'Ocupada' | 'Mantenimiento';
 }
 
+interface ReservationRoomDetail {
+  id_habitacion?: number;
+  numero_habitacion?: string;
+  fecha_checkin?: string;
+  fecha_checkout?: string;
+}
+
+interface Reservation {
+  id_reserva: number;
+  estado_reserva: 'Pendiente' | 'Confirmada' | 'Cancelada' | 'Finalizada';
+  habitaciones_detalle?: ReservationRoomDetail[];
+  habitaciones?: ReservationRoomDetail[];
+}
+
 export default function Dashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -39,8 +54,21 @@ export default function Dashboard() {
     }
   };
 
+  const fetchReservations = async () => {
+    try {
+      const response = await reservationService.getAll();
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data?.data ?? response.data?.reservas ?? [];
+      setReservations(data);
+    } catch (error) {
+      console.error('Error fetching reservations:', error);
+    }
+  };
+
   useEffect(() => {
     fetchRooms();
+    fetchReservations();
   }, []);
 
   const handleEditRoom = (room: Room) => {
@@ -54,6 +82,11 @@ export default function Dashboard() {
 
     if (newStatus === selectedRoom.estado) {
       toast.info('El estado es el mismo');
+      return;
+    }
+
+    if (newStatus === 'Disponible' && selectedRoom.estado === 'Ocupada' && hasActiveReservationForRoom(selectedRoom.id_habitacion)) {
+      toast.error('La habitación se encuentra reservada. Revisa las reservas antes de cambiar el estado.');
       return;
     }
 
@@ -101,6 +134,58 @@ export default function Dashboard() {
     } else {
       return ['Disponible', 'Ocupada', 'Mantenimiento'];
     }
+  };
+
+  const getReservationRoomDetails = (reservation: Reservation) => {
+    const detalle = Array.isArray(reservation.habitaciones_detalle)
+      ? reservation.habitaciones_detalle
+      : Array.isArray(reservation.habitaciones)
+      ? reservation.habitaciones
+      : [];
+
+    return detalle.filter((item): item is ReservationRoomDetail => Boolean(item));
+  };
+
+  const hasActiveReservationForRoom = (roomId: number) => {
+    return reservations.some((reservation) => {
+      if (reservation.estado_reserva === 'Cancelada' || reservation.estado_reserva === 'Finalizada') {
+        return false;
+      }
+
+      const roomDetails = getReservationRoomDetails(reservation);
+      const hasRoom = roomDetails.some((detail) => detail.id_habitacion === roomId);
+
+      if (!hasRoom) {
+        return false;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const checkinDate = roomDetails
+        .map((detail) => detail.fecha_checkin)
+        .find(Boolean);
+      const checkoutDate = roomDetails
+        .map((detail) => detail.fecha_checkout)
+        .find(Boolean);
+
+      if (!checkinDate && !checkoutDate) {
+        return true;
+      }
+
+      const parsedCheckin = checkinDate ? new Date(checkinDate) : null;
+      const parsedCheckout = checkoutDate ? new Date(checkoutDate) : null;
+
+      if (parsedCheckin && parsedCheckin > today) {
+        return true;
+      }
+
+      if (parsedCheckout && parsedCheckout < today) {
+        return false;
+      }
+
+      return true;
+    });
   };
 
   return (
@@ -314,29 +399,43 @@ export default function Dashboard() {
               <div className="space-y-2">
                 <Label>Nuevo estado</Label>
                 <div className="space-y-2">
-                  {(selectedRoom ? getAvailableStates(selectedRoom.estado) : []).map((state) => (
-                    <button
-                      key={state}
-                      onClick={() => setNewStatus(state as Room['estado'])}
-                      className={`w-full p-3 rounded-lg border-2 transition-all text-sm font-medium ${
-                        newStatus === state
-                          ? state === 'Disponible'
-                            ? 'border-accent bg-accent/20 text-accent'
+                  {(selectedRoom ? getAvailableStates(selectedRoom.estado) : []).map((state) => {
+                    const isBlockedAvailabilityChange =
+                      state === 'Disponible' &&
+                      selectedRoom?.estado === 'Ocupada' &&
+                      hasActiveReservationForRoom(selectedRoom.id_habitacion);
+
+                    return (
+                      <button
+                        key={state}
+                        onClick={() => setNewStatus(state as Room['estado'])}
+                        disabled={isBlockedAvailabilityChange}
+                        className={`w-full p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                          newStatus === state
+                            ? state === 'Disponible'
+                              ? 'border-accent bg-accent/20 text-accent'
+                              : state === 'Ocupada'
+                              ? 'border-destructive bg-destructive/20 text-destructive'
+                              : 'border-yellow-500 bg-yellow-100/50 text-yellow-700 dark:text-yellow-400'
+                            : state === 'Disponible'
+                            ? 'border-accent/30 text-accent hover:border-accent/60'
                             : state === 'Ocupada'
-                            ? 'border-destructive bg-destructive/20 text-destructive'
-                            : 'border-yellow-500 bg-yellow-100/50 text-yellow-700 dark:text-yellow-400'
-                          : state === 'Disponible'
-                          ? 'border-accent/30 text-accent hover:border-accent/60'
-                          : state === 'Ocupada'
-                          ? 'border-destructive/30 text-destructive hover:border-destructive/60'
-                          : 'border-yellow-500/30 text-yellow-700 dark:text-yellow-400 hover:border-yellow-500/60'
-                      }`}
-                    >
-                      {state}
-                    </button>
-                  ))}
+                            ? 'border-destructive/30 text-destructive hover:border-destructive/60'
+                            : 'border-yellow-500/30 text-yellow-700 dark:text-yellow-400 hover:border-yellow-500/60'
+                        } ${isBlockedAvailabilityChange ? 'cursor-not-allowed opacity-60' : ''}`}
+                      >
+                        {state}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+
+              {selectedRoom && selectedRoom.estado === 'Ocupada' && hasActiveReservationForRoom(selectedRoom.id_habitacion) && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  La habitación se encuentra reservada. Revisa las reservas antes de cambiar el estado.
+                </div>
+              )}
 
               <div className="flex gap-3 pt-2">
                 <Button
@@ -351,7 +450,11 @@ export default function Dashboard() {
                   type="button"
                   className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                   onClick={handleSaveRoomStatus}
-                  disabled={isSubmitting || newStatus === selectedRoom?.estado}
+                  disabled={
+                    isSubmitting ||
+                    newStatus === selectedRoom?.estado ||
+                    (newStatus === 'Disponible' && selectedRoom?.estado === 'Ocupada' && hasActiveReservationForRoom(selectedRoom.id_habitacion))
+                  }
                 >
                   {isSubmitting ? 'Guardando...' : 'Guardar'}
                 </Button>

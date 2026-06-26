@@ -64,20 +64,33 @@ pnpm preview
 ```
 client/src/
 ├── pages/              # Páginas principales
+│   ├── Home.tsx        # Página de inicio
 │   ├── Login.tsx       # Formulario de autenticación
 │   ├── Dashboard.tsx   # Panel de control con gráficos
 │   ├── Clientes.tsx    # Gestión de clientes
+│   ├── Roles.tsx       # Gestión de roles
 │   ├── Reservas.tsx    # Listado de reservas
-│   └── NuevaReserva.tsx # Formulario de nueva reserva
+│   ├── NuevaReserva.tsx # Formulario de nueva reserva
+│   └── NotFound.tsx    # Página 404
 ├── components/         # Componentes reutilizables
 │   ├── Navbar.tsx      # Barra de navegación
 │   ├── ProtectedRoute.tsx # Rutas protegidas
+│   ├── LoginDialog.tsx  # Diálogo de login
+│   ├── Map.tsx         # Componente de mapa
+│   ├── ErrorBoundary.tsx # Boundary para errores
+│   ├── Footer.tsx      # Pie de página
 │   └── ui/             # Componentes de shadcn/ui
 ├── contexts/           # React contexts
 │   ├── AuthContext.tsx # Gestión de autenticación
 │   └── ThemeContext.tsx # Gestión de tema
+├── hooks/              # Hooks personalizados
+│   ├── useComposition.ts # Hook para composición
+│   ├── useMobile.tsx   # Hook para detectar dispositivo móvil
+│   └── usePersistFn.ts # Hook para persistencia de funciones
 ├── services/           # Servicios API
 │   └── api.ts         # Cliente Axios configurado
+├── lib/                # Utilidades
+│   └── utils.ts       # Funciones de utilidad
 ├── App.tsx            # Componente raíz
 └── index.css          # Estilos globales
 ```

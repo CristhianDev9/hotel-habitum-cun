@@ -14,6 +14,13 @@ import { Plus, Eye, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocation } from 'wouter';
 
+interface HabitacionReservaDetalle {
+  id_habitacion?: number;
+  numero_habitacion?: string;
+  fecha_checkin?: string;
+  fecha_checkout?: string;
+}
+
 interface Reserva {
   id_reserva: number;
   id_cliente: number;
@@ -21,6 +28,8 @@ interface Reserva {
   fecha_creacion: string;
   estado_reserva: 'Pendiente' | 'Confirmada' | 'Cancelada' | 'Finalizada';
   notas_adicionales?: string;
+  habitaciones_detalle?: HabitacionReservaDetalle[];
+  habitaciones?: HabitacionReservaDetalle[];
 }
 
 interface Consumo {
@@ -155,6 +164,24 @@ export default function Reservas() {
     }
   };
 
+  const getRoomLabel = (reserva: Reserva) => {
+    const detalle = Array.isArray(reserva.habitaciones_detalle)
+      ? reserva.habitaciones_detalle
+      : Array.isArray(reserva.habitaciones)
+      ? reserva.habitaciones
+      : [];
+
+    const labels = detalle
+      .map((habitacion) => habitacion.numero_habitacion || (habitacion.id_habitacion ? `Hab. ${habitacion.id_habitacion}` : null))
+      .filter(Boolean) as string[];
+
+    if (labels.length > 0) {
+      return labels.join(', ');
+    }
+
+    return 'Sin habitación asignada';
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -199,6 +226,7 @@ export default function Reservas() {
                     <TableRow>
                       <TableHead>ID Reserva</TableHead>
                       <TableHead>Cliente</TableHead>
+                      <TableHead>Habitación</TableHead>
                       <TableHead>Fecha Creación</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead>Acciones</TableHead>
@@ -209,6 +237,7 @@ export default function Reservas() {
                       <TableRow key={reserva.id_reserva}>
                         <TableCell className="font-medium">#{reserva.id_reserva}</TableCell>
                         <TableCell>Cliente {reserva.id_cliente}</TableCell>
+                        <TableCell>{getRoomLabel(reserva)}</TableCell>
                         <TableCell>{new Date(reserva.fecha_creacion).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(reserva.estado_reserva)}`}>
@@ -233,7 +262,7 @@ export default function Reservas() {
                                 <DialogHeader>
                                   <DialogTitle>Detalles de Reserva #{reserva.id_reserva}</DialogTitle>
                                   <DialogDescription>
-                                    Estado: {reserva.estado_reserva}
+                                    Estado: {reserva.estado_reserva} · Habitación: {getRoomLabel(reserva)}
                                   </DialogDescription>
                                 </DialogHeader>
 
