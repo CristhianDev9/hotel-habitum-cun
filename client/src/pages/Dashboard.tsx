@@ -66,76 +66,6 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchRooms();
-    fetchReservations();
-  }, []);
-
-  const handleEditRoom = (room: Room) => {
-    setSelectedRoom(room);
-    setNewStatus(room.estado);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleSaveRoomStatus = async () => {
-    if (!selectedRoom) return;
-
-    if (newStatus === selectedRoom.estado) {
-      toast.info('El estado es el mismo');
-      return;
-    }
-
-    if (newStatus === 'Disponible' && selectedRoom.estado === 'Ocupada' && hasActiveReservationForRoom(selectedRoom.id_habitacion)) {
-      toast.error('La habitación se encuentra reservada. Revisa las reservas antes de cambiar el estado.');
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-      await roomService.update(selectedRoom.id_habitacion, { estado: newStatus });
-      toast.success('Estado de habitación actualizado');
-      setIsEditDialogOpen(false);
-      fetchRooms();
-    } catch (error: any) {
-      console.error('Error updating room:', error);
-      const msg = error?.response?.data?.message || 'Error al actualizar la habitación';
-      toast.error(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Calcular estadísticas
-  const stats = {
-    total: rooms.length,
-    disponibles: rooms.filter(r => r.estado === 'Disponible').length,
-    ocupadas: rooms.filter(r => r.estado === 'Ocupada').length,
-    mantenimiento: rooms.filter(r => r.estado === 'Mantenimiento').length,
-  };
-
-  const occupancyData = [
-    { name: 'Disponibles', value: stats.disponibles, fill: '#22c55e' },
-    { name: 'Ocupadas', value: stats.ocupadas, fill: '#ef4444' },
-    { name: 'Mantenimiento', value: stats.mantenimiento, fill: '#eab308' },
-  ];
-
-  const stateDistribution = [
-    { estado: 'Disponibles', cantidad: stats.disponibles },
-    { estado: 'Ocupadas', cantidad: stats.ocupadas },
-    { estado: 'Mantenimiento', cantidad: stats.mantenimiento },
-  ];
-
-  // Obtener estado disponible según el estado actual
-  const getAvailableStates = (current: Room['estado']) => {
-    if (current === 'Disponible') {
-      return ['Disponible', 'Ocupada', 'Mantenimiento'];
-    } else if (current === 'Mantenimiento') {
-      return ['Disponible', 'Mantenimiento'];
-    } else {
-      return ['Disponible', 'Ocupada', 'Mantenimiento'];
-    }
-  };
-
   const getReservationRoomDetails = (reservation: Reservation) => {
     const detalle = Array.isArray(reservation.habitaciones_detalle)
       ? reservation.habitaciones_detalle
@@ -186,6 +116,129 @@ export default function Dashboard() {
 
       return true;
     });
+  };
+
+  useEffect(() => {
+    fetchRooms();
+    fetchReservations();
+  }, []);
+
+  useEffect(() => {
+    if (rooms.length > 0 && reservations.length > 0) {
+      autoUpdateRoomStatus();
+    }
+  }, [reservations]);
+
+  const autoUpdateRoomStatus = async () => {
+    try {
+      const roomsToUpdate: number[] = [];
+
+      reservations.forEach((reservation) => {
+        if (reservation.estado_reserva === 'Cancelada' || reservation.estado_reserva === 'Finalizada') {
+          return;
+        }
+
+        const roomDetails = getReservationRoomDetails(reservation);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        roomDetails.forEach((detail) => {
+          if (detail.id_habitacion && detail.fecha_checkout) {
+            const checkoutDate = new Date(detail.fecha_checkout);
+            checkoutDate.setHours(0, 0, 0, 0);
+
+            if (checkoutDate < today) {
+              const room = rooms.find((r) => r.id_habitacion === detail.id_habitacion);
+              if (room && room.estado === 'Ocupada' && !roomsToUpdate.includes(detail.id_habitacion)) {
+                roomsToUpdate.push(detail.id_habitacion);
+              }
+            }
+          }
+        });
+      });
+
+      if (roomsToUpdate.length > 0) {
+        await Promise.all(
+          roomsToUpdate.map((roomId) =>
+            roomService.update(roomId, { estado: 'Disponible' }).catch((error) => {
+              console.error(`Error updating room ${roomId}:`, error);
+            })
+          )
+        );
+
+        if (roomsToUpdate.length > 0) {
+          toast.success(`${roomsToUpdate.length} habitacion(es) actualizada(s) a disponible`);
+          fetchRooms();
+        }
+      }
+    } catch (error) {
+      console.error('Error in auto update:', error);
+    }
+  };
+
+  const handleEditRoom = (room: Room) => {
+    setSelectedRoom(room);
+    setNewStatus(room.estado);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveRoomStatus = async () => {
+    if (!selectedRoom) return;
+
+    if (newStatus === selectedRoom.estado) {
+      toast.info('El estado es el mismo');
+      return;
+    }
+
+    if (newStatus === 'Disponible' && selectedRoom.estado === 'Ocupada' && hasActiveReservationForRoom(selectedRoom.id_habitacion)) {
+      toast.error('La habitación se encuentra reservada. Revisa las reservas antes de cambiar el estado.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await roomService.update(selectedRoom.id_habitacion, { estado: newStatus });
+      toast.success('Estado de habitación actualizado');
+      setIsEditDialogOpen(false);
+      fetchRooms();
+    } catch (error: any) {
+      console.error('Error updating room:', error);
+      const msg = error?.response?.data?.message || 'Error al actualizar la habitación';
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Calcular estadísticas
+  const stats = {
+    total: rooms.length,
+    disponibles: rooms.filter(r => r.estado === 'Disponible').length,
+    ocupadas: rooms.filter(r => r.estado === 'Ocupada').length,
+    mantenimiento: rooms.filter(r => r.estado === 'Mantenimiento').length,
+  };
+
+  const occupancyData = [
+    { name: 'Disponibles', value: stats.disponibles, fill: '#22c55e' },
+    { name: 'Ocupadas', value: stats.ocupadas, fill: '#ef4444' },
+    { name: 'Mantenimiento', value: stats.mantenimiento, fill: '#eab308' },
+  ].filter((entry) => entry.value > 0);
+
+  const stateDistribution = [
+    { estado: 'Disponibles', cantidad: stats.disponibles },
+    { estado: 'Ocupadas', cantidad: stats.ocupadas },
+    { estado: 'Mantenimiento', cantidad: stats.mantenimiento },
+  ];
+
+  // Obtener estado disponible según el estado actual
+  const getAvailableStates = (current: Room['estado']) => {
+    if (current === 'Disponible') {
+      return ['Disponible', 'Ocupada', 'Mantenimiento'];
+    } else if (current === 'Mantenimiento') {
+      return ['Disponible', 'Mantenimiento'];
+    } else {
+      return ['Disponible', 'Ocupada', 'Mantenimiento'];
+    }
   };
 
   return (

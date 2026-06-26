@@ -182,6 +182,32 @@ export default function Reservas() {
     return 'Sin habitación asignada';
   };
 
+  const getDateRange = (reserva: Reserva) => {
+    const detalle = Array.isArray(reserva.habitaciones_detalle)
+      ? reserva.habitaciones_detalle
+      : Array.isArray(reserva.habitaciones)
+      ? reserva.habitaciones
+      : [];
+
+    const checkin = detalle[0]?.fecha_checkin;
+    const checkout = detalle[0]?.fecha_checkout;
+
+    if (checkin && checkout) {
+      const checkinDate = new Date(checkin).toLocaleDateString();
+      const checkoutDate = new Date(checkout).toLocaleDateString();
+      return `${checkinDate} - ${checkoutDate}`;
+    }
+
+    return 'Sin fechas';
+  };
+
+  const getActiveReservations = () =>
+    reservas.filter((reserva) => reserva.estado_reserva === 'Pendiente' || reserva.estado_reserva === 'Confirmada');
+
+  const getHistoryReservations = () =>
+    reservas.filter((reserva) => reserva.estado_reserva === 'Finalizada' || reserva.estado_reserva === 'Cancelada');
+
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -202,11 +228,11 @@ export default function Reservas() {
           </Button>
         </div>
 
-        {/* Tabla de Reservas */}
-        <Card>
+        {/* Reservas activas */}
+        <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Listado de Reservas</CardTitle>
-            <CardDescription>Total: {reservas.length} reservas</CardDescription>
+            <CardTitle>Reservas Activas</CardTitle>
+            <CardDescription>Total: {getActiveReservations().length} reservas activas</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -215,10 +241,8 @@ export default function Reservas() {
                   <Skeleton key={i} className="h-12" />
                 ))}
               </div>
-            ) : reservas.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No hay reservas registradas
-              </div>
+            ) : getActiveReservations().length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No hay reservas activas</div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
@@ -227,17 +251,19 @@ export default function Reservas() {
                       <TableHead>ID Reserva</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead>Habitación</TableHead>
+                      <TableHead>Check-in / Check-out</TableHead>
                       <TableHead>Fecha Creación</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {reservas.map((reserva) => (
+                    {getActiveReservations().map((reserva) => (
                       <TableRow key={reserva.id_reserva}>
                         <TableCell className="font-medium">#{reserva.id_reserva}</TableCell>
                         <TableCell>Cliente {reserva.id_cliente}</TableCell>
                         <TableCell>{getRoomLabel(reserva)}</TableCell>
+                        <TableCell className="text-sm">{getDateRange(reserva)}</TableCell>
                         <TableCell>{new Date(reserva.fecha_creacion).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(reserva.estado_reserva)}`}>
@@ -267,7 +293,6 @@ export default function Reservas() {
                                 </DialogHeader>
 
                                 <div className="space-y-6">
-                                  {/* Consumos */}
                                   <div>
                                     <h3 className="font-semibold mb-3">Consumos</h3>
                                     {consumos.length === 0 ? (
@@ -284,7 +309,6 @@ export default function Reservas() {
                                     )}
                                   </div>
 
-                                  {/* Pagos */}
                                   <div>
                                     <h3 className="font-semibold mb-3">Pagos</h3>
                                     {pagos.length === 0 ? (
@@ -301,7 +325,6 @@ export default function Reservas() {
                                     )}
                                   </div>
 
-                                  {/* Resumen */}
                                   <div className="border-t pt-4">
                                     <div className="flex justify-between font-semibold text-accent">
                                       <span>Total Consumos:</span>
@@ -341,56 +364,127 @@ export default function Reservas() {
                     ))}
                   </TableBody>
                 </Table>
-                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                  <DialogContent className="sm:max-w-xl">
-                    <DialogHeader>
-                      <DialogTitle>Editar Reserva</DialogTitle>
-                      <DialogDescription>
-                        Actualiza el estado o las notas adicionales de la reserva.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleSaveReserva} className="space-y-4 pt-2" noValidate>
-                      <div className="space-y-1">
-                        <Label htmlFor="estado_reserva">Estado de Reserva</Label>
-                        <select
-                          id="estado_reserva"
-                          value={editForm.estado_reserva}
-                          onChange={(e) =>
-                            setEditForm((prev) => ({
-                              ...prev,
-                              estado_reserva: e.target.value as Reserva['estado_reserva'],
-                            }))
-                          }
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        >
-                          <option value="Pendiente">Pendiente</option>
-                          <option value="Confirmada">Confirmada</option>
-                          <option value="Cancelada">Cancelada</option>
-                          <option value="Finalizada">Finalizada</option>
-                        </select>
-                      </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-                      <div className="space-y-1">
-                        <Label htmlFor="notas_adicionales">Notas Adicionales</Label>
-                        <Textarea
-                          id="notas_adicionales"
-                          value={editForm.notas_adicionales}
-                          onChange={(e) => setEditForm((prev) => ({ ...prev, notas_adicionales: e.target.value }))}
-                          className="h-32"
-                        />
-                      </div>
+        {/* Historial de Reservas */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Historial de Reservas</CardTitle>
+            <CardDescription>Total: {getHistoryReservations().length} reservas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-12" />
+                ))}
+              </div>
+            ) : getHistoryReservations().length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No hay reservas en el historial</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID Reserva</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Habitación</TableHead>
+                      <TableHead>Check-in / Check-out</TableHead>
+                      <TableHead>Fecha Creación</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getHistoryReservations().map((reserva) => (
+                      <TableRow key={reserva.id_reserva}>
+                        <TableCell className="font-medium">#{reserva.id_reserva}</TableCell>
+                        <TableCell>Cliente {reserva.id_cliente}</TableCell>
+                        <TableCell>{getRoomLabel(reserva)}</TableCell>
+                        <TableCell className="text-sm">{getDateRange(reserva)}</TableCell>
+                        <TableCell>{new Date(reserva.fecha_creacion).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(reserva.estado_reserva)}`}>
+                            {reserva.estado_reserva}
+                          </span>
+                        </TableCell>
+                        <TableCell className="flex flex-wrap gap-2">
+                          <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewDetails(reserva)}
+                                className="gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary"
+                              >
+                                <Eye className="h-4 w-4" />
+                                Ver
+                              </Button>
+                            </DialogTrigger>
+                            {selectedReserva?.id_reserva === reserva.id_reserva && (
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Detalles de Reserva #{reserva.id_reserva}</DialogTitle>
+                                  <DialogDescription>
+                                    Estado: {reserva.estado_reserva} · Habitación: {getRoomLabel(reserva)}
+                                  </DialogDescription>
+                                </DialogHeader>
 
-                      <div className="flex gap-3 pt-2">
-                        <Button type="button" variant="outline" className="flex-1" onClick={() => setIsEditDialogOpen(false)}>
-                          Cancelar
-                        </Button>
-                        <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">
-                          Guardar cambios
-                        </Button>
-                      </div>
-                    </form>
-                  </DialogContent>
-                </Dialog>
+                                <div className="space-y-6">
+                                  <div>
+                                    <h3 className="font-semibold mb-3">Consumos</h3>
+                                    {consumos.length === 0 ? (
+                                      <p className="text-sm text-muted-foreground">Sin consumos registrados</p>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        {consumos.map((consumo) => (
+                                          <div key={consumo.id_consumo} className="flex justify-between text-sm border-b pb-2">
+                                            <span>Servicio {consumo.id_servicio}</span>
+                                            <span className="font-medium">${consumo.precio_cobrado}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div>
+                                    <h3 className="font-semibold mb-3">Pagos</h3>
+                                    {pagos.length === 0 ? (
+                                      <p className="text-sm text-muted-foreground">Sin pagos registrados</p>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        {pagos.map((pago) => (
+                                          <div key={pago.id_pago} className="flex justify-between text-sm border-b pb-2">
+                                            <span>{pago.metodo_pago}</span>
+                                            <span className="font-medium">${pago.monto}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="border-t pt-4">
+                                    <div className="flex justify-between font-semibold text-accent">
+                                      <span>Total Consumos:</span>
+                                      <span>${consumos.reduce((sum, c) => sum + c.precio_cobrado, 0)}</span>
+                                    </div>
+                                    <div className="flex justify-between font-semibold text-primary">
+                                      <span>Total Pagos:</span>
+                                      <span>${pagos.reduce((sum, p) => sum + p.monto, 0)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            )}
+                          </Dialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>
