@@ -32,7 +32,7 @@ export default function Footer() {
 
         {/* Right Side: Copyright / Year */}
         <div className="text-xs text-muted-foreground shrink-0 mt-4 md:mt-0">
-          <p>© {new Date().getFullYear()} HabitumCUN. Desarrollado por:Cristhian Camilo Lengua Parra <br />Daniel Andrés Álvarez Hernández 
+          <p>© {new Date().getFullYear()} Desarrollado por: Cristhian Camilo Lengua Parra <br />Daniel Andrés Álvarez Hernández 
 
 .</p>
         </div>
