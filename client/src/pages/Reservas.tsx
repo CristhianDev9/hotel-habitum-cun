@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Eye, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocation } from 'wouter';
@@ -100,6 +100,11 @@ export default function Reservas() {
   };
 
   const handleEditReserva = (reserva: Reserva) => {
+    if (reserva.estado_reserva !== 'Pendiente' && reserva.estado_reserva !== 'Confirmada') {
+      toast.error('Solo las reservas activas se pueden editar');
+      return;
+    }
+
     setEditingReserva(reserva);
     setEditForm({
       notas_adicionales: reserva.notas_adicionales ?? '',
@@ -146,6 +151,17 @@ export default function Reservas() {
       toast.error(msg);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleEditDialogChange = (open: boolean) => {
+    setIsEditDialogOpen(open);
+    if (!open) {
+      setEditingReserva(null);
+      setEditForm({
+        notas_adicionales: '',
+        estado_reserva: 'Pendiente',
+      });
     }
   };
 
@@ -490,6 +506,79 @@ export default function Reservas() {
           </CardContent>
         </Card>
       </main>
+      <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Editar Reserva #{editingReserva?.id_reserva}</DialogTitle>
+            <DialogDescription>
+              Actualiza el estado o las notas de esta reserva activa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveReserva} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="estado-reserva">Estado</Label>
+              <Select
+                value={editForm.estado_reserva}
+                onValueChange={(value) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    estado_reserva: value as Reserva['estado_reserva'],
+                  }))
+                }
+              >
+                <SelectTrigger id="estado-reserva">
+                  <SelectValue placeholder="Selecciona un estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pendiente">Pendiente</SelectItem>
+                  <SelectItem value="Confirmada">Confirmada</SelectItem>
+                  <SelectItem value="Cancelada">Cancelada</SelectItem>
+                  <SelectItem value="Finalizada">Finalizada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notas-reserva">Notas adicionales</Label>
+              <Textarea
+                id="notas-reserva"
+                value={editForm.notas_adicionales}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    notas_adicionales: e.target.value,
+                  }))
+                }
+                rows={4}
+                maxLength={500}
+                placeholder="Agrega notas o comentarios especiales para esta reserva..."
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {editForm.notas_adicionales.length}/500
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleEditDialogChange(false)}
+                disabled={isLoading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                {isLoading ? 'Guardando...' : 'Guardar cambios'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Footer />
     </div>
   );
